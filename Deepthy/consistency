@@ -1,0 +1,18 @@
+import numpy as np
+
+# Non-urgent order data
+non_urgent_order = [316.307, 128.633, 43.651, 171.297, 90.532, 110.925, 144.124, 119.379, 218.856, 146.518,
+                    178.433, 145.865, 170.566, 220.343, 193.768, 122.736, 144.051, 105.415, 240.66, 131.067]
+
+# Calculate mean of Non-urgent order
+mean_non_urgent = np.mean(non_urgent_order)
+
+# Calculate standard deviation of Non-urgent order
+std_non_urgent = np.std(non_urgent_order)
+
+# Calculate consistency score for each data point
+consistency_scores = [(order - mean_non_urgent) / std_non_urgent for order in non_urgent_order]
+
+# Print consistency scores
+for i, score in enumerate(consistency_scores):
+    print(f"Data point {i}: Consistency Score = {score:.4f}")
