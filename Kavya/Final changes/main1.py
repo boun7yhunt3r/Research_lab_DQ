@@ -65,10 +65,9 @@ circle_overall_relevancy = pn.pane.Plotly()
 def update_plots(event):
     selected_columns = column_dropdown.value
     selected_columns = [col for col in selected_columns if pd.api.types.is_numeric_dtype(data[col])]
+    
     consistency_scores = checker.calculate_consistency_scores(selected_columns)
-    print(type(consistency_scores))
     relevancy_scores = checker.calculate_relevancy_scores(selected_columns, 3)
-    print(type(relevancy_scores))
 
     consistency_df = pd.DataFrame(consistency_scores, columns=["Column", "ConsistencyScore"])
     relevancy_df = pd.DataFrame(relevancy_scores, columns=["Column", "RelevancyScore"])

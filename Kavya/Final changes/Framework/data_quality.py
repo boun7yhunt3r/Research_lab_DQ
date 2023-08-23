@@ -24,9 +24,12 @@ class DataQualityChecker:
       skewness = self.data.skew()
       return pn.pane.Str("\nAssess skewness of the data\n" + str(skewness))
 
+  #def calculate_consistency_scores(self, columns_of_interest):
+      #return calculate_consistency_scores(self.data, columns_of_interest)
+  
+  
   def calculate_consistency_scores(self, columns_of_interest):
-      return calculate_consistency_scores(self.data, columns_of_interest)
-
+        return calculate_consistency_scores(self.data, columns_of_interest)
   def calculate_relevancy_scores(self, columns_of_interest, outlier_threshold):
       return calculate_relevancy_scores(self.data, columns_of_interest, outlier_threshold)
 
@@ -135,20 +138,19 @@ def column_in_range(column, min_value, max_value):
   return violations
 
 
+
 def calculate_consistency_scores(data, columns_of_interest):
-    
-     # Filter out non-numeric columns
     numeric_columns = [col for col in columns_of_interest if pd.api.types.is_numeric_dtype(data[col])]
-    print(numeric_columns)
     consistency_scores = []
 
     for column in numeric_columns:
         cv = data[column].std() / data[column].mean()
         consistency_score = 1 - cv
         consistency_scores.append({"Column": column, "ConsistencyScore": consistency_score})
-    print("consistency_score")
-    print(consistency_score)
+    print(consistency_scores)
     return consistency_scores
+
+
 
 
 # Calculate relevancy scores for selected columns
