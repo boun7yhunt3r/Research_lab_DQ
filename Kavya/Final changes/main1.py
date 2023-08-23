@@ -55,47 +55,62 @@ column_dropdown = pn.widgets.MultiChoice(
     options=all_columns
 )
 
-# Create placeholders for the plots and indicators
+
+# Create placeholders for the plots, indicators, and stationarity results
 fig_consistency = pn.pane.Plotly()
 fig_relevancy = pn.pane.Plotly()
 circle_overall_consistency = pn.pane.Plotly()
 circle_overall_relevancy = pn.pane.Plotly()
+stationarity_results_pane = pn.pane.Str("")  # Initialize with empty string
 
+
+# Create a function to update plots and scores
 # Create a function to update plots and scores
 def update_plots(event):
     selected_columns = column_dropdown.value
     selected_columns = [col for col in selected_columns if pd.api.types.is_numeric_dtype(data[col])]
-    
+
     consistency_scores = checker.calculate_consistency_scores(selected_columns)
     relevancy_scores = checker.calculate_relevancy_scores(selected_columns, 3)
 
     consistency_df = pd.DataFrame(consistency_scores, columns=["Column", "ConsistencyScore"])
     relevancy_df = pd.DataFrame(relevancy_scores, columns=["Column", "RelevancyScore"])
 
-    consistency_df["ConsistencyPercentage"] = ((consistency_df["ConsistencyScore"]/ len(selected_columns)) * 100).round(2)
+    consistency_df["ConsistencyPercentage"] = ((consistency_df["ConsistencyScore"] / len(selected_columns)) * 100).round(2)
     relevancy_df["RelevancyPercentage"] = ((relevancy_df["RelevancyScore"] / len(selected_columns)) * 100).round(2)
 
     fig_consistency.object = px.bar(consistency_df, x="Column", y="ConsistencyScore", title="Consistency Scores")
     fig_relevancy.object = px.bar(relevancy_df, x="Column", y="RelevancyScore", title="Relevancy Scores")
-    
-    overall_consistency = consistency_df["ConsistencyScore"].sum() / (len(selected_columns) * len(data))
-    overall_relevancy = relevancy_df["RelevancyScore"].sum() / (len(selected_columns) * len(data))
-    
+
+    overall_normalized_consistency = checker.calculate_overall_normalized_consistency(selected_columns)
+    overall_normalized_relevancy = checker.calculate_overall_normalized_relevancy(selected_columns, outlier_threshold=3)
+
     circle_overall_consistency.object = go.Figure(go.Indicator(
         mode="gauge+number",
-        value=overall_consistency * 100,
-        title="Overall Consistency",
+        value=overall_normalized_consistency,
+        title="Overall Normalized Consistency",
         domain={'x': [0, 1], 'y': [0, 1]},
-        gauge={'axis': {'range': [None, 100]}}
+        gauge={'axis': {'range': [0, 1]}}  # Normalize between 0 and 1
     ))
-    
+
     circle_overall_relevancy.object = go.Figure(go.Indicator(
         mode="gauge+number",
-        value=overall_relevancy * 100,
-        title="Overall Relevancy",
+        value=overall_normalized_relevancy,
+        title="Overall Normalized Relevancy",
         domain={'x': [0, 1], 'y': [0, 1]},
-        gauge={'axis': {'range': [None, 100]}}
+        gauge={'axis': {'range': [0, 1]}}  # Normalize between 0 and 1
     ))
+    
+    # Calculate stationarity results
+    stationarity_results = checker.check_stationarity()
+
+    # Display stationarity results for each selected column
+    stationarity_results_text = "\nStationarity Results:\n"
+    for column in selected_columns:
+        is_stationary = stationarity_results.get(column, False)
+        stationarity_results_text += f"{column}: {is_stationary}\n"
+    
+    stationarity_results_pane.object = stationarity_results_text
 
 # Link the dropdown widget to the update function
 column_dropdown.param.watch(update_plots, "value")
@@ -112,11 +127,9 @@ layout = pn.Column(
     "## Consistency Scores",
     fig_consistency,
     "## Relevancy Scores",
-    fig_relevancy
+    fig_relevancy,
+    "## Stationarity Results",
+    stationarity_results_pane  # Add the stationarity results pane
 )
 # Display the layout
 layout.servable()
-
-#report = checker.run_checks()
-#print(report)
-

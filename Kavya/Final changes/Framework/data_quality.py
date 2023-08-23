@@ -26,12 +26,50 @@ class DataQualityChecker:
 
   #def calculate_consistency_scores(self, columns_of_interest):
       #return calculate_consistency_scores(self.data, columns_of_interest)
+
+  def calculate_overall_normalized_consistency(self, columns_of_interest):
+        normalized_consistency_scores = self.calculate_normalized_consistency_scores(self.data, columns_of_interest)
+        overall_normalized_consistency = sum(score["NormalizedConsistencyScore"] for score in normalized_consistency_scores) / len(columns_of_interest)
+        return overall_normalized_consistency
+
+  def calculate_overall_normalized_relevancy(self, columns_of_interest, outlier_threshold=3):
+        normalized_relevancy_scores = self.calculate_normalized_relevancy_scores(self.data, columns_of_interest, outlier_threshold)
+        overall_normalized_relevancy = sum(score["NormalizedRelevancyScore"] for score in normalized_relevancy_scores) / len(columns_of_interest)
+        return overall_normalized_relevancy
   
   
   def calculate_consistency_scores(self, columns_of_interest):
         return calculate_consistency_scores(self.data, columns_of_interest)
   def calculate_relevancy_scores(self, columns_of_interest, outlier_threshold):
-      return calculate_relevancy_scores(self.data, columns_of_interest, outlier_threshold)
+        return calculate_relevancy_scores(self.data, columns_of_interest, outlier_threshold)
+  
+  def calculate_normalized_consistency_scores(self, data, columns_of_interest):
+
+    numeric_columns = [col for col in columns_of_interest if pd.api.types.is_numeric_dtype(data[col])]
+    normalized_consistency_scores = []
+
+    for column in numeric_columns:
+        cv = data[column].std() / data[column].mean()
+        consistency_score = 1 - cv
+        normalized_consistency = (consistency_score - 0) / (1 - 0)  # Normalize between 0 and 1
+        normalized_consistency_scores.append({"Column": column, "NormalizedConsistencyScore": normalized_consistency})
+    print(normalized_consistency_scores)
+    return normalized_consistency_scores
+
+#def calculate_normalized_relevancy_scores(data, columns_of_interest, outlier_threshold=3):
+  def calculate_normalized_relevancy_scores(self, data, columns_of_interest, outlier_threshold):
+    normalized_relevancy_scores = []
+    numeric_columns = [col for col in columns_of_interest if pd.api.types.is_numeric_dtype(data[col])]
+
+    for column in numeric_columns:
+        z_scores = (data[column] - data[column].mean()) / data[column].std()
+        outliers = data[abs(z_scores) > outlier_threshold][column]
+        relevancy_score = len(data[column]) - data[column].isnull().sum() - len(outliers)
+        normalized_relevancy = (relevancy_score - 0) / (len(data[column]) - 0)  # Normalize between 0 and 1
+        normalized_relevancy_scores.append({"Column": column, "NormalizedRelevancyScore": normalized_relevancy})
+    print(normalized_relevancy_scores)
+    return normalized_relevancy_scores
+  
 
   def check_completeness(self):
 
@@ -166,3 +204,9 @@ def calculate_relevancy_scores(data, columns_of_interest, outlier_threshold=3):
         relevancy_scores.append({"Column": column, "RelevancyScore": relevancy_score})
     print(relevancy_scores)
     return relevancy_scores
+
+#def calculate_normalized_consistency_scores(data, columns_of_interest):
+
+
+
+
