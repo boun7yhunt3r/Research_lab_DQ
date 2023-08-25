@@ -9,6 +9,8 @@ from importlib import reload
 
 from Framework.data_quality import DataQualityChecker
 from Visualization.dashboard import Dashboard
+from Framework.improve_dq import Improve_DQ
+
 
 filename = "AirQualityUCI.zip"
 
@@ -25,6 +27,7 @@ checker = DataQualityChecker(data)
 columns_of_interest = ["CO(GT)", "PT08.S1(CO)", "NMHC(GT)", "C6H6(GT)", "PT08.S2(NMHC)", "NOx(GT)",
                        "PT08.S3(NOx)", "NO2(GT)", "PT08.S4(NO2)", "PT08.S5(O3)", "T", "RH", "AH"]
 
+improver = Improve_DQ(data)
 
 # Add expectations and calculate scores
 Consistency_scores = checker.calculate_consistency_scores(columns_of_interest)
@@ -101,19 +104,38 @@ def update_plots(event):
         gauge={'axis': {'range': [0, 1]}}  # Normalize between 0 and 1
     ))
     
-    # Calculate stationarity results
-    stationarity_results = checker.check_stationarity()
+       # Calculate stationarity results
+    stationarity_results = checker.check_stationarity(selected_columns)
 
     # Display stationarity results for each selected column
     stationarity_results_text = "\nStationarity Results:\n"
     for column in selected_columns:
         is_stationary = stationarity_results.get(column, False)
-        stationarity_results_text += f"{column}: {is_stationary}\n"
-    
+        improved_data = None
+        if not is_stationary:
+            improved_data = improver.improve_stationarity(column)  # Attempt to improve stationarity
+            if improved_data is not None:
+                improved_stationary_result = checker.check_stationarity(improved_data)
+                stationarity_results_text += f"{column}: Improved - Stationary: {improved_stationary_result}\n"
+            else:
+                stationarity_results_text += f"{column}: No improvement performed due to non-numeric values.\n"
+        else:
+            stationarity_results_text += f"{column}: Already Stationary\n"
+
     stationarity_results_pane.object = stationarity_results_text
+
+    # Calculate and display time shifts for selected columns
+    time_shift_results = checker.calculate_time_shifts(selected_columns)
+    time_shifts_text = "\nTime Shifts:\n"
+    for column, time_shift in time_shift_results.items():
+        time_shifts_text += f"{column}: {time_shift}\n"
+    time_shifts_pane.object = time_shifts_text
+
+      
 
 # Link the dropdown widget to the update function
 column_dropdown.param.watch(update_plots, "value")
+time_shifts_pane = pn.pane.Str("")  # Initialize with an empty string
 
 # Create the layout
 layout = pn.Column(
@@ -129,7 +151,9 @@ layout = pn.Column(
     "## Relevancy Scores",
     fig_relevancy,
     "## Stationarity Results",
-    stationarity_results_pane  # Add the stationarity results pane
+    stationarity_results_pane,
+    "## Time Shifts",  # Add a section for displaying time shifts
+    time_shifts_pane  # Add the time shifts pane
 )
 # Display the layout
 layout.servable()

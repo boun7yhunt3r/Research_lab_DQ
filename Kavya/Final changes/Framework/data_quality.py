@@ -3,6 +3,7 @@ import panel as pn
 import pandas as pd
 from scipy.stats import skew
 from statsmodels.tsa.stattools import adfuller
+import numpy as np
 
 class DataQualityChecker:
 
@@ -123,24 +124,41 @@ class DataQualityChecker:
     }
 
 
-##For individual columns
+  def check_stationarity(self, columns_of_interest):
+    stationarity_results = {}
 
-  def check_stationarity(self):
+    for column in columns_of_interest:
+        data = self.data[column].dropna()
 
-    data = self.data['CO(GT)'].dropna()
+        # Run Dickey-Fuller test
+        result = adfuller(data)
 
-    # Run Dickey-Fuller test
-    result = adfuller(data)
+        p_value = result[1]
 
-    stat = result[0]
-    p_value = result[1]
+        is_stationary = p_value < 0.05
+        stationarity_results[column] = is_stationary
 
-    is_stationary = p_value < 0.05
-    print(is_stationary)
-    # Return Series with stationarity result
-    stationary = pd.Series([is_stationary], index=['Stationary'])
+    return stationarity_results
+  
 
-    return stationary  
+  def calculate_time_shifts(self, columns_of_interest):
+    time_shift_results = {}
+
+    for column in columns_of_interest:
+        target_data = self.data[column].dropna()
+        cross_corr = np.correlate(target_data, target_data, mode='full')  # Auto-correlation
+        time_shift = cross_corr.argmax() - len(target_data) + 1
+        time_shift_results[column] = time_shift
+
+    return time_shift_results
+
+  # def calculate_overall_time_shift(self):
+  #       target_data = self.data.dropna().values.flatten()
+  #       cross_corr = np.correlate(target_data, target_data, mode='full')  # Auto-correlation
+  #       time_shift = cross_corr.argmax() - len(target_data) + 1
+
+  #       return time_shift
+
 
   def expect_column_min_to_be_between(self, column, min_value, max_value):
       between_expectation = _build_min_max_expectation(column, min_value, max_value)
