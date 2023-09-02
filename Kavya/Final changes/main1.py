@@ -33,21 +33,42 @@ improver = Improve_DQ(data)
 Consistency_scores = checker.calculate_consistency_scores(columns_of_interest)
 Relevancy_scores = checker.calculate_relevancy_scores(columns_of_interest, 3)
 
-""" print("Check completeness")
-print(checker.check_completeness())
+# Create placeholders for overall data quality indicators
+missing_count_pane = pn.pane.Str("")
+completeness_pane = pn.pane.Str("")
+stationarity_pane = pn.pane.Str("")
+skewness_pane = pn.pane.Str("")
 
-print("Check duplicates")
-print(checker.check_duplicates())
+def update_overall_indicators(event):
+    missing_count = checker.check_missing_count()
+    stationarity_results = checker.calculate_stationarity()
+    completeness = checker.calculate_completeness()
+    skewness_results = checker.calculate_skewness()
+   
+    
+    
 
-print("Check skewtness")
-print(checker.check_skewness())
-
-print("Check missing data")
-print(checker.check_missing_data())
+    # Display the results in the dashboard
+    missing_count_pane.object = f"<b>Missing Count:</b> {missing_count}"
 
 
-print("Check check_stationarity column")
-print(checker.check_stationarity()) """
+   
+    # Format stationarity results as a string
+    stationarity_str = "<b>Stationary reults of the columns:</b>\n"+"\n".join([f"{col}: {'Stationary' if is_stationary else 'Non-Stationary'}" for col, is_stationary in stationarity_results.items()])
+    stationarity_pane.object = stationarity_str  # Assign the formatted string
+
+    completeness_pane.object = f"<b>Completeness:</b> {completeness}%"
+    
+    # Format skewness results as a string without decimal formatting
+    skewness_str = "<b>Skewness of the columns:</b>\n" + "\n".join([f"{col}: {skew}" for col, skew in skewness_results.items()])
+    skewness_pane.object = skewness_str  # Assign the formatted string
+   
+
+
+# Link a button widget to the update_overall_indicators function
+update_button = pn.widgets.Button(name="Update Overall Indicators")
+update_button.on_click(update_overall_indicators)
+
 
 # Define columns of interest
 all_columns = data.columns.tolist()
@@ -64,10 +85,8 @@ fig_consistency = pn.pane.Plotly()
 fig_relevancy = pn.pane.Plotly()
 circle_overall_consistency = pn.pane.Plotly()
 circle_overall_relevancy = pn.pane.Plotly()
-stationarity_results_pane = pn.pane.Str("")  # Initialize with empty string
 
 
-# Create a function to update plots and scores
 # Create a function to update plots and scores
 def update_plots(event):
     selected_columns = column_dropdown.value
@@ -103,26 +122,6 @@ def update_plots(event):
         domain={'x': [0, 1], 'y': [0, 1]},
         gauge={'axis': {'range': [0, 1]}}  # Normalize between 0 and 1
     ))
-    
-       # Calculate stationarity results
-    stationarity_results = checker.check_stationarity(selected_columns)
-
-    # Display stationarity results for each selected column
-    stationarity_results_text = "\nStationarity Results:\n"
-    for column in selected_columns:
-        is_stationary = stationarity_results.get(column, False)
-        improved_data = None
-        if not is_stationary:
-            improved_data = improver.improve_stationarity(column)  # Attempt to improve stationarity
-            if improved_data is not None:
-                improved_stationary_result = checker.check_stationarity(improved_data)
-                stationarity_results_text += f"{column}: Improved - Stationary: {improved_stationary_result}\n"
-            else:
-                stationarity_results_text += f"{column}: No improvement performed due to non-numeric values.\n"
-        else:
-            stationarity_results_text += f"{column}: Already Stationary\n"
-
-    stationarity_results_pane.object = stationarity_results_text
 
     # Calculate and display time shifts for selected columns
     time_shift_results = checker.calculate_time_shifts(selected_columns)
@@ -130,8 +129,7 @@ def update_plots(event):
     for column, time_shift in time_shift_results.items():
         time_shifts_text += f"{column}: {time_shift}\n"
     time_shifts_pane.object = time_shifts_text
-
-      
+    
 
 # Link the dropdown widget to the update function
 column_dropdown.param.watch(update_plots, "value")
@@ -140,6 +138,12 @@ time_shifts_pane = pn.pane.Str("")  # Initialize with an empty string
 # Create the layout
 layout = pn.Column(
     "# Air Quality Data Quality Dashboard",
+    update_button,
+    "## Overall Data Quality Indicators",
+    missing_count_pane,
+    completeness_pane,
+    skewness_pane,
+    stationarity_pane,
     column_dropdown,
     "## Overall Scores",
     pn.Row(
@@ -150,8 +154,6 @@ layout = pn.Column(
     fig_consistency,
     "## Relevancy Scores",
     fig_relevancy,
-    "## Stationarity Results",
-    stationarity_results_pane,
     "## Time Shifts",  # Add a section for displaying time shifts
     time_shifts_pane  # Add the time shifts pane
 )
