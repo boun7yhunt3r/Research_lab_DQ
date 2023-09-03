@@ -4,7 +4,7 @@ import pandas as pd
 from scipy.stats import skew
 from statsmodels.tsa.stattools import adfuller
 import numpy as np
-
+import matplotlib.pyplot as plt
 class DataQualityChecker:
 
   def __init__(self, data):
@@ -205,19 +205,20 @@ def column_in_range(column, min_value, max_value):
   return violations
 
 
-
 def calculate_consistency_scores(data, columns_of_interest):
+    
+     # Filter out non-numeric columns
     numeric_columns = [col for col in columns_of_interest if pd.api.types.is_numeric_dtype(data[col])]
+    print(numeric_columns)
     consistency_scores = []
 
     for column in numeric_columns:
         cv = data[column].std() / data[column].mean()
         consistency_score = 1 - cv
         consistency_scores.append({"Column": column, "ConsistencyScore": consistency_score})
-    print(consistency_scores)
+    #print("consistency_score")
+    #print(consistency_score)
     return consistency_scores
-
-
 
 
 # Calculate relevancy scores for selected columns
@@ -228,10 +229,11 @@ def calculate_relevancy_scores(data, columns_of_interest, outlier_threshold=3):
 
     for column in numeric_columns:
         z_scores = (data[column] - data[column].mean()) / data[column].std()
+
         outliers = data[abs(z_scores) > outlier_threshold][column]
         relevancy_score = len(data[column]) - data[column].isnull().sum() - len(outliers)
         relevancy_scores.append({"Column": column, "RelevancyScore": relevancy_score})
-    print(relevancy_scores)
+    #print(relevancy_scores)
     return relevancy_scores
 
 
