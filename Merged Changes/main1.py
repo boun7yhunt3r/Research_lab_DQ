@@ -29,8 +29,7 @@ columns_of_interest = ["CO(GT)", "PT08.S1(CO)", "NMHC(GT)", "C6H6(GT)", "PT08.S2
 
 improver = Improve_DQ(data)
 
-value =  checker.check_missing_data()
-print(value)
+
 
 # Add expectations and calculate scores
 Consistency_scores = checker.calculate_consistency_scores(columns_of_interest)

@@ -152,17 +152,18 @@ class DataQualityChecker:
         return calculate_relevancy_scores(self.data, columns_of_interest, outlier_threshold)
   
   def calculate_normalized_consistency_scores(self, data, columns_of_interest):
+      numeric_columns = [col for col in columns_of_interest if pd.api.types.is_numeric_dtype(data[col])]
+      normalized_consistency_scores = []
 
-    numeric_columns = [col for col in columns_of_interest if pd.api.types.is_numeric_dtype(data[col])]
-    normalized_consistency_scores = []
+      min_consistency = 0  # Minimum possible consistency score
+      max_consistency = 1  # Maximum possible consistency score
 
-    for column in numeric_columns:
-        cv = data[column].std() / data[column].mean()
-        consistency_score = 1 - cv
-        normalized_consistency = (consistency_score - 0) / (1 - 0)  # Normalize between 0 and 1
-        normalized_consistency_scores.append({"Column": column, "NormalizedConsistencyScore": normalized_consistency})
-  
-    return normalized_consistency_scores
+      for column in numeric_columns:
+            cv = data[column].std() / data[column].mean()
+            consistency_score = 1 - cv
+            normalized_consistency = max(0, min(1, (consistency_score - min_consistency) / (max_consistency - min_consistency)))
+            normalized_consistency_scores.append({"Column": column, "NormalizedConsistencyScore": normalized_consistency})
+      return normalized_consistency_scores
 
   def calculate_normalized_relevancy_scores(self, data, columns_of_interest, outlier_threshold):
     normalized_relevancy_scores = []
