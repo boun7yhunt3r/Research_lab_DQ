@@ -213,8 +213,21 @@ class Improve_DQ:
         cross_corr = correlate(target_data, target_data, mode='full')
         time_shift = cross_corr.argmax() - len(target_data) + 1
 
-        # Apply time shift correction using interpolation
-        shifted_data = target_data.shift(time_shift)
+        # Initialize variables to keep track of the best shift and correlation score
+        best_time_shift = time_shift
+        best_correlation = cross_corr.max()
+
+        # Search for the best alignment by trying different time shifts
+        for shift in range(-len(target_data) // 2, len(target_data) // 2):
+            shifted_data = target_data.shift(shift)
+            correlation = correlate(target_data, shifted_data, mode='valid')
+
+            if correlation.max() > best_correlation:
+                best_time_shift = shift
+                best_correlation = correlation.max()
+
+        # Apply the best time shift correction using interpolation
+        shifted_data = target_data.shift(best_time_shift)
         improved_data = shifted_data.interpolate()
 
         # Update the original DataFrame with the improved data
